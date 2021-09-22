@@ -2,12 +2,33 @@
 // Licensed under the MIT License.
 import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
+import { Disposable } from "../utils";
 import { bicepCacheRequestType } from "./protocol";
 
 export class BicepCacheContentProvider
+  extends Disposable
   implements vscode.TextDocumentContentProvider
 {
-  constructor(private readonly languageClient: LanguageClient) {}
+  constructor(private readonly languageClient: LanguageClient) {
+    super();
+    this.register(
+      vscode.workspace.onDidOpenTextDocument((document) => {
+        /*
+         * Changing the language ID while the file is being opened causes one of the following problems:
+         * - getting a TextDocument and blocking on it causes a deadlock
+         * - doing the same in a fire/forget promise causes strange caching behavior in VS code where
+         *   the language server is called for a particular file only once
+         * Moving this to an event listener instead avoids these issues entirely.
+         */
+        if (
+          document.uri.scheme === "bicep-cache" &&
+          document.languageId === "plaintext"
+        ) {
+          this.fixCacheContentLanguage(document);
+        }
+      })
+    );
+  }
 
   onDidChange?: vscode.Event<vscode.Uri> | undefined;
 
@@ -28,18 +49,6 @@ export class BicepCacheContentProvider
       return "";
     }
 
-    // awaiting on openTextDocument() here causes a deadlock
-    // because we are currently opening the same document
-    // however we can fire and forget the promise chain
-    vscode.workspace.openTextDocument(uri).then(async (document) => {
-      const updated = await vscode.languages.setTextDocumentLanguage(
-        document,
-        this.selectDocumentLanguage()
-      );
-
-
-    });
-
     return response.content;
   }
 
@@ -58,5 +67,12 @@ export class BicepCacheContentProvider
     return armToolsExtension && armToolsExtension.isActive
       ? "arm-template"
       : "json";
+  }
+
+  private fixCacheContentLanguage(document: vscode.TextDocument) {
+    vscode.languages.setTextDocumentLanguage(
+      document,
+      this.selectDocumentLanguage()
+    );
   }
 }
