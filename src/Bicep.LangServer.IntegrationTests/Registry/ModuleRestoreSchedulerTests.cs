@@ -205,6 +205,8 @@ namespace Bicep.LangServer.UnitTests.Registry
             public string Value { get; }
 
             public override string UnqualifiedReference => this.Value;
+
+            public override bool IsExternal => true;
         }
     }
 }
