@@ -156,14 +156,13 @@ winget install -e --id Microsoft.Bicep
 #### Manual with PowerShell
 ```powershell
 # Create the install folder
-$installPath = "$env:USERPROFILE\.bicep"
+$installPath = "$env:LOCALAPPDATA\Programs\Bicep CLI"
 $installDir = New-Item -ItemType Directory -Path $installPath -Force
-$installDir.Attributes += 'Hidden'
 # Fetch the latest Bicep CLI binary
 (New-Object Net.WebClient).DownloadFile("https://github.com/Azure/bicep/releases/latest/download/bicep-win-x64.exe", "$installPath\bicep.exe")
 # Add bicep to your PATH
 $currentPath = (Get-Item -path "HKCU:\Environment" ).GetValue('Path', '', 'DoNotExpandEnvironmentNames')
-if (-not $currentPath.Contains("%USERPROFILE%\.bicep")) { setx PATH ($currentPath + ";%USERPROFILE%\.bicep") }
+if (-not $currentPath.Contains("%LOCALAPPDATA%\Programs\Bicep CLI")) { setx PATH ($currentPath + ";%LOCALAPPDATA%\Programs\Bicep CLI") }
 if (-not $env:path.Contains($installPath)) { $env:path += ";$installPath" }
 # Verify you can now access the 'bicep' command.
 bicep --help
