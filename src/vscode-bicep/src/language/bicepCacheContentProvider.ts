@@ -18,7 +18,7 @@ export class BicepCacheContentProvider
     const response = await this.languageClient.sendRequest(
       bicepCacheRequestType,
       {
-        target: uri.toString(),
+        target: this.getTarget(uri),
       },
       token
     );
@@ -31,14 +31,22 @@ export class BicepCacheContentProvider
     // awaiting on openTextDocument() here causes a deadlock
     // because we are currently opening the same document
     // however we can fire and forget the promise chain
-    vscode.workspace.openTextDocument(uri).then((document) => {
-      vscode.languages.setTextDocumentLanguage(
+    vscode.workspace.openTextDocument(uri).then(async (document) => {
+      const updated = await vscode.languages.setTextDocumentLanguage(
         document,
         this.selectDocumentLanguage()
       );
+
+
     });
 
     return response.content;
+  }
+
+  private getTarget(uri: vscode.Uri) {
+    // the URIs have the format of bicep-cache:///<uri-encoded bicep module reference>
+    // the path of a URI will also have a leading slash that needs to be removed
+    return decodeURIComponent(uri.path.substring(1));
   }
 
   private selectDocumentLanguage() {
